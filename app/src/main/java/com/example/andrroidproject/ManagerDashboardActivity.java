@@ -1,12 +1,9 @@
 package com.example.andrroidproject;
 
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -14,8 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class ManagerDashboardActivity extends AppCompatActivity {
 
@@ -30,7 +26,6 @@ public class ManagerDashboardActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_manager_dashboard);
 
         managerTaskRecyclerView = findViewById(R.id.managerTaskRecyclerView);
@@ -75,13 +70,18 @@ public class ManagerDashboardActivity extends AppCompatActivity {
                             Task task = snap.getValue(Task.class);
                             taskList.add(task);
                         }
+
+
+                        Collections.sort(taskList, (t1, t2) -> {
+                            List<String> order = Arrays.asList("In Progress", "Pending", "Completed");
+                            return Integer.compare(order.indexOf(t1.status), order.indexOf(t2.status));
+                        });
+
                         taskAdapter.notifyDataSetChanged();
                     }
 
                     @Override
-                    public void onCancelled(DatabaseError error) {
-                        Toast.makeText(ManagerDashboardActivity.this, "Error loading tasks", Toast.LENGTH_SHORT).show();
-                    }
+                    public void onCancelled(DatabaseError error) {}
                 });
     }
 }

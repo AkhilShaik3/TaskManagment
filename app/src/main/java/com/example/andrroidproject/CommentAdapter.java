@@ -1,5 +1,7 @@
 package com.example.andrroidproject;
 
+
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -7,8 +9,8 @@ import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.text.DateFormat;
-import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentViewHolder> {
 
@@ -21,11 +23,11 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
     public static class CommentViewHolder extends RecyclerView.ViewHolder {
         TextView commentUser, commentText, commentTime;
 
-        public CommentViewHolder(View view) {
-            super(view);
-            commentUser = view.findViewById(R.id.commentUser);
-            commentText = view.findViewById(R.id.commentContent);
-            commentTime = view.findViewById(R.id.commentTimestamp);
+        public CommentViewHolder(View itemView) {
+            super(itemView);
+            commentUser = itemView.findViewById(R.id.commentUser);
+            commentText = itemView.findViewById(R.id.commentText);
+            commentTime = itemView.findViewById(R.id.commentTime);
         }
     }
 
@@ -40,7 +42,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
         Comment c = commentList.get(position);
         holder.commentUser.setText(c.userName);
         holder.commentText.setText(c.text);
-        holder.commentTime.setText(DateFormat.getDateTimeInstance().format(c.timestamp));
+        holder.commentTime.setText(new SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()).format(new Date(c.timestamp)));
     }
 
     @Override

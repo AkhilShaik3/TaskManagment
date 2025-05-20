@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">AndrroidProject</string>
+    <string-array name="status_array">
+        <item>Pending</item>
+        <item>In Progress</item>
+        <item>Finished</item>
+    </string-array>
+
 </resources>

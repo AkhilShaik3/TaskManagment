@@ -3,7 +3,6 @@ package com.example.andrroidproject;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -12,13 +11,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class UserDashboardActivity extends AppCompatActivity {
 
     RecyclerView userTaskRecyclerView;
-    Button logoutButton, viewTasksButton, markCompletedButton;
+    Button logoutButton;
 
     List<Task> userTaskList;
     TaskAdapter taskAdapter;
@@ -31,11 +29,9 @@ public class UserDashboardActivity extends AppCompatActivity {
         setContentView(R.layout.activity_user_dashboard);
 
         logoutButton = findViewById(R.id.logoutButton);
-        viewTasksButton = findViewById(R.id.viewTasksButton);
-        markCompletedButton = findViewById(R.id.markCompletedButton);
         userTaskRecyclerView = findViewById(R.id.userTaskRecyclerView);
-
         userTaskRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+
         userTaskList = new ArrayList<>();
         taskAdapter = new TaskAdapter(userTaskList);
         userTaskRecyclerView.setAdapter(taskAdapter);
@@ -49,25 +45,6 @@ public class UserDashboardActivity extends AppCompatActivity {
             firebaseAuth.signOut();
             startActivity(new Intent(this, LoginActivity.class));
             finish();
-        });
-
-        viewTasksButton.setOnClickListener(v -> loadUserTasks());
-
-        markCompletedButton.setOnClickListener(v -> {
-            String uid = firebaseAuth.getCurrentUser().getUid();
-            taskRef.orderByChild("assignedTo").equalTo(uid)
-                    .addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(DataSnapshot snapshot) {
-                            for (DataSnapshot snap : snapshot.getChildren()) {
-                                taskRef.child(snap.getKey()).child("status").setValue("Completed");
-                            }
-                            Toast.makeText(UserDashboardActivity.this, "All tasks marked as completed", Toast.LENGTH_SHORT).show();
-                        }
-
-                        @Override
-                        public void onCancelled(DatabaseError error) {}
-                    });
         });
     }
 
@@ -83,13 +60,18 @@ public class UserDashboardActivity extends AppCompatActivity {
                             Task task = snap.getValue(Task.class);
                             userTaskList.add(task);
                         }
+
+                        // Sort by status: In Progress > Pending > Completed
+                        Collections.sort(userTaskList, (t1, t2) -> {
+                            List<String> order = Arrays.asList("In Progress", "Pending", "Completed");
+                            return Integer.compare(order.indexOf(t1.status), order.indexOf(t2.status));
+                        });
+
                         taskAdapter.notifyDataSetChanged();
                     }
 
                     @Override
-                    public void onCancelled(DatabaseError error) {
-                        Toast.makeText(UserDashboardActivity.this, "Failed to load tasks", Toast.LENGTH_SHORT).show();
-                    }
+                    public void onCancelled(DatabaseError error) {}
                 });
     }
 }

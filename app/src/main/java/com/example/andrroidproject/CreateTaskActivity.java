@@ -1,9 +1,7 @@
 package com.example.andrroidproject;
 
-
 import android.app.DatePickerDialog;
 import android.os.Bundle;
-import android.view.MenuItem;
 import android.widget.*;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,50 +9,49 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class CreateTaskActivity extends AppCompatActivity {
 
-    EditText titleEditText, descriptionEditText, dueDateEditText;
-    RadioGroup priorityRadioGroup;
+    EditText titleEditText, descriptionEditText, commentEditText, dueDateEditText;
     Spinner userSpinner;
-    Button submitTaskButton;
+    Button createTaskButton;
 
-    DatabaseReference usersRef, taskRef;
     FirebaseAuth mAuth;
-
-    ArrayList<String> userNames = new ArrayList<>();
-    Map<String, String> uidMap = new HashMap<>();
+    DatabaseReference usersRef, tasksRef;
+    ArrayList<String> userEmails = new ArrayList<>();
+    Map<String, String> emailToUidMap = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_task);
 
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
         titleEditText = findViewById(R.id.titleEditText);
         descriptionEditText = findViewById(R.id.descriptionEditText);
+        commentEditText = findViewById(R.id.commentEditText);
         dueDateEditText = findViewById(R.id.dueDateEditText);
-        priorityRadioGroup = findViewById(R.id.priorityRadioGroup);
         userSpinner = findViewById(R.id.userSpinner);
-        submitTaskButton = findViewById(R.id.submitTaskButton);
+        createTaskButton = findViewById(R.id.createTaskButton);
 
         mAuth = FirebaseAuth.getInstance();
         usersRef = FirebaseDatabase.getInstance().getReference("users");
-        taskRef = FirebaseDatabase.getInstance().getReference("tasks");
+        tasksRef = FirebaseDatabase.getInstance().getReference("tasks");
 
         loadUsers();
 
-        dueDateEditText.setOnClickListener(v -> {
-            Calendar calendar = Calendar.getInstance();
-            new DatePickerDialog(this, (view, year, month, day) -> {
-                String date = day + "/" + (month + 1) + "/" + year;
-                dueDateEditText.setText(date);
-            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
-        });
+        dueDateEditText.setOnClickListener(v -> showDatePicker());
 
-        submitTaskButton.setOnClickListener(v -> createTask());
+        createTaskButton.setOnClickListener(v -> createTask());
+    }
+
+    private void showDatePicker() {
+        Calendar calendar = Calendar.getInstance();
+        new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
+            String selectedDate = dayOfMonth + "/" + (month + 1) + "/" + year;
+            dueDateEditText.setText(selectedDate);
+        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
     }
 
     private void loadUsers() {
@@ -62,13 +59,18 @@ public class CreateTaskActivity extends AppCompatActivity {
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot snapshot) {
+                        userEmails.clear();
+                        emailToUidMap.clear();
                         for (DataSnapshot snap : snapshot.getChildren()) {
-                            String name = snap.child("email").getValue(String.class);
+                            String email = snap.child("email").getValue(String.class);
                             String uid = snap.getKey();
-                            uidMap.put(name, uid);
-                            userNames.add(name);
+                            if (email != null && uid != null) {
+                                userEmails.add(email);
+                                emailToUidMap.put(email, uid);
+                            }
                         }
-                        ArrayAdapter<String> adapter = new ArrayAdapter<>(CreateTaskActivity.this, android.R.layout.simple_spinner_dropdown_item, userNames);
+                        ArrayAdapter<String> adapter = new ArrayAdapter<>(CreateTaskActivity.this,
+                                android.R.layout.simple_spinner_dropdown_item, userEmails);
                         userSpinner.setAdapter(adapter);
                     }
 
@@ -78,28 +80,32 @@ public class CreateTaskActivity extends AppCompatActivity {
     }
 
     private void createTask() {
-        String title = titleEditText.getText().toString();
-        String desc = descriptionEditText.getText().toString();
-        String dueDate = dueDateEditText.getText().toString();
-        int priorityId = priorityRadioGroup.getCheckedRadioButtonId();
-        RadioButton selectedPriority = findViewById(priorityId);
-        String priority = selectedPriority.getText().toString();
-        String assignedTo = uidMap.get(userSpinner.getSelectedItem().toString());
-        String createdBy = mAuth.getUid();
-        String taskId = taskRef.push().getKey();
+        String title = titleEditText.getText().toString().trim();
+        String desc = descriptionEditText.getText().toString().trim();
+        String comment = commentEditText.getText().toString().trim();
+        String dueDate = dueDateEditText.getText().toString().trim();
+        String userEmail = userSpinner.getSelectedItem() != null ? userSpinner.getSelectedItem().toString() : "";
+        String assignedTo = emailToUidMap.get(userEmail);
+        String createdBy = mAuth.getCurrentUser().getUid();
+        String taskId = tasksRef.push().getKey();
         long timestamp = System.currentTimeMillis();
 
-        Task task = new Task(taskId, title, desc, dueDate, priority, "Pending", createdBy, assignedTo, timestamp);
-        taskRef.child(taskId).setValue(task)
-                .addOnSuccessListener(unused -> {
-                    Toast.makeText(this, "Task created", Toast.LENGTH_SHORT).show();
-                    finish();
-                });
-    }
+        if (title.isEmpty() || desc.isEmpty() || dueDate.isEmpty() || assignedTo == null) {
+            Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        onBackPressed();
-        return true;
+
+        Task task = new Task(taskId, title, desc, dueDate, "Medium", "Pending", createdBy, assignedTo, timestamp);
+        tasksRef.child(taskId).setValue(task);
+
+        if (!comment.isEmpty()) {
+            DatabaseReference commentRef = tasksRef.child(taskId).child("comments").push();
+            Comment commentObj = new Comment(createdBy, mAuth.getCurrentUser().getEmail(), comment, timestamp);
+            commentRef.setValue(commentObj);
+        }
+
+        Toast.makeText(this, "Task created successfully!", Toast.LENGTH_SHORT).show();
+        finish();
     }
 }

@@ -13,6 +13,9 @@
         android:theme="@style/Theme.AndrroidProject"
         tools:targetApi="31">
         <activity
+            android:name=".TaskDetailActivity"
+            android:exported="false" />
+        <activity
             android:name=".TaskStatusActivity"
             android:exported="false" />
         <activity

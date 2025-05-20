@@ -1,6 +1,5 @@
 package com.example.andrroidproject;
 
-
 import android.os.Bundle;
 import android.widget.Toast;
 

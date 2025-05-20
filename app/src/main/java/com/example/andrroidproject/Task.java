@@ -2,6 +2,7 @@ package com.example.andrroidproject;
 
 
 
+
 public class Task {
     public String taskId, title, description, dueDate, priority, status, createdBy, assignedTo;
     public long timestamp;
